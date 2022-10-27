@@ -1,0 +1,65 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<c:set var="contextPath" value="${pageContext.request.contextPath }"/>
+<%
+	request.setCharacterEncoding("utf-8");
+%>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>글 목록창</title>
+<style type="text/css">
+	.ba{
+		text-decoration: none;
+	}
+	span{
+		display: inline-block;
+		padding-left: 15px;
+	}
+</style>
+</head>
+<body>
+	<table align="center" border="1" width="80%">
+		<tr align="center" bgcolor="lightgreen">
+			<th>글번호</th><th>작성자</th><th>제목</th><th>작성일</th>
+		</tr>
+		<c:choose>
+			<c:when test="${empty articleList }">
+				<tr>
+					<td colspan="4">
+						<p align="center">등록된 글이 없습니다.</p>
+					</td>
+				</tr>
+			</c:when>
+			<%--articleList로 포워딩한 글 목록을 forEach태그를 이용해서 표시 --%>
+			<c:when test="${!empty articleList }">
+				<c:forEach var="article" items="${articleList }" varStatus="articleNum">
+					<tr align="center">
+					<%--varStatus의 count속성을 이용해 글번호 1부터 자동표시 --%>
+						<td width="5%">${articleNum.count }</td><!-- 카운트를 거꾸로 하고 싶으면 max를 구해서 해야함. -->
+						<td width="10%">${article.id }</td>
+						<td align="left" width="35%">
+							<c:choose>
+								<c:when test="${article.level > 1}"><!-- 레벨이 2면 들여쓰기 10px 한번, 레벨이 3이면 들여쓰기 10px 두번. 리댓달릴때만다 안으로 들여쓰기 할라고. -->
+									<c:forEach begin="1" end="${article.level }" step="1">
+										<span></span>
+									</c:forEach>
+									[답변]<a class="ba" href="${contextPath }/board/viewArticle.do?articleNo=${article.articleNo }">${article.title }</a>
+								</c:when>
+								<c:otherwise>
+									<a class="ba" href="${contextPath }/board/viewArticle.do?articleNo=${article.articleNo }">${article.title }</a>
+								</c:otherwise>
+							</c:choose>
+						</td>
+						<td width="10%"><fmt:formatDate value="${article.writeDate }"/></td>
+					</tr>
+				</c:forEach>
+			</c:when>
+		</c:choose>
+	</table>
+	<p align="center"><a href="${contextPath }/board/articleForm.do">글쓰기</a></p>
+</body>
+</html>

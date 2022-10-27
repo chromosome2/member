@@ -17,7 +17,7 @@ public class ArticleVO {
 	
 	//생성자
 	public ArticleVO() {
-		System.out.println("ArticleVO생성");
+		//System.out.println("ArticleVO생성");
 	}
 	//생성자
 	public ArticleVO(int level, int articleNo, int parentNo, String title, String content, String imageFileName, String id) {
@@ -72,7 +72,9 @@ public class ArticleVO {
 	}
 	public void setImageFileName(String imageFileName) {
 		try {
-			this.imageFileName = URLEncoder.encode(imageFileName,"utf-8"); // 파일이름에 특수문자가 있을경우 인코딩해주기.
+			if(imageFileName != null && imageFileName.length() != 0) {
+				this.imageFileName = URLEncoder.encode(imageFileName,"utf-8"); // 파일이름에 특수문자가 있을경우 인코딩해주기.
+			}
 		}catch(UnsupportedEncodingException e){
 			System.out.println("이미지를 로디중 에러");
 		}

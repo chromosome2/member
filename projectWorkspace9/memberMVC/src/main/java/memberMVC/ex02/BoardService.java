@@ -22,5 +22,19 @@ public class BoardService {
 		article=boardDAO.selectArticle(articleNo);
 		return article;
 	}
+	
+	public void modArticle(ArticleVO article) {
+		boardDAO.updateArticle(article);
+	}
+	
+	public List<Integer> removeArticle(int articleNo) {
+		List<Integer> articleNoList=boardDAO.selectRemoveArticles(articleNo);
+		boardDAO.deleteArticle(articleNo);
+		return articleNoList;
+	}
+	
+	public int addReply(ArticleVO article) {
+		return boardDAO.insertNewArticle(article);
+	}
 }
 //보드 서비스가 사실 없어도 됨. 근데 이게 있으면 눈에 확들어오고 복잡하걸 한눈에 알아볼 수 있음. 복잡할 수록 분리하는게 편함.

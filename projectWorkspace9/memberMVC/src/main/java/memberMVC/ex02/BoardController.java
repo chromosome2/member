@@ -15,6 +15,7 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
@@ -43,6 +44,8 @@ public class BoardController extends HttpServlet {
 	
 	protected void doHandle(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		String nextPage="";
+		PrintWriter pw;
+		HttpSession session;
 		request.setCharacterEncoding("utf-8");
 		response.setContentType("text/html;charset=utf-8");
 		String action=request.getPathInfo();//요청명을 가져온다.
@@ -50,16 +53,25 @@ public class BoardController extends HttpServlet {
 		try {
 			List<ArticleVO> articleList=new ArrayList<ArticleVO>();
 			if(action == null) {
-				articleList=boardService.listArticles();
-				request.setAttribute("articleList", articleList);
-				nextPage="/boardinfo/listArticles.jsp";
+				/*String _section=request.getParameter("section");
+				String _pageNum=request.getParameter("pageNum");
+				int section=Integer.parseInt((_section == null)? "1" : _section);//최초에는 1을 받음.
+				int pageNum=Integer.parseInt((_pageNum == null)? "1" : _pageNum);
+				Map<String, Integer> pagingMap=new HashMap<String, Integer>();
+				pagingMap.put("section", section);
+				pagingMap.put("pageNum", pageNum);
+				Map articleMap=boardService.listArticles(pagingMap);
+				articleMap.put("section", section);
+				articleMap.put("pageNum",pageNum);
+				request.setAttribute("articleMap", articleMap);
+				nextPage="/boardinfo/listArticles.jsp";*/
 			}else if(action.equals("/listArticles.do")){
 				articleList=boardService.listArticles();
 				request.setAttribute("articleList", articleList);//여기서 세팅해서 아래에서 forward하는거임.
 				nextPage="/boardinfo/listArticles.jsp";
 			}else if(action.equals("/articleForm.do")) {
 				nextPage="/boardinfo/articleForm.jsp";
-			}else if(action.equals("/addArticle.do")) {
+			}else if(action.equals("/addArticle.do")) {//새글쓰기
 				int articleNo=0;
 				Map<String, String> articleMap=upload(request, response);
 				String title=articleMap.get("title");
@@ -82,7 +94,7 @@ public class BoardController extends HttpServlet {
 					FileUtils.moveFileToDirectory(srcFile, destDir, true);//파일 옮기기.
 					srcFile.delete();
 				}
-				PrintWriter pw=response.getWriter();
+				pw=response.getWriter();
 				pw.print("<script>"+"alert('새글을 추가했습니다.');"+"location.href='"+request.getContextPath()+"/board/listArticles.do';"+"</script>");
 				return;
 			}else if(action.equals("/viewArticle.do")) {
@@ -92,15 +104,84 @@ public class BoardController extends HttpServlet {
 				//포워딩
 				request.setAttribute("article", articleVO);//이 article이
 				nextPage="/boardinfo/viewArticle.jsp";//여기로 넘어감
+			}else if(action.equals("/modArticle.do")) {
+				Map<String, String> articleMap=upload(request, response);
+				int articleNo=Integer.parseInt(articleMap.get("articleNo"));
+				articleVO.setArticleNo(articleNo);
+				String title=articleMap.get("title");
+				String content=articleMap.get("content");
+				String imageFileName=articleMap.get("imageFileName");
+				articleVO.setParentNo(0);
+				articleVO.setId("hong");
+				articleVO.setTitle(title);
+				articleVO.setContent(content);
+				articleVO.setImageFileName(imageFileName);
+				boardService.modArticle(articleVO);
+				//이미지를 첨부한 경우에만 수행
+				if(imageFileName !=null && imageFileName.length() !=0) {
+					String originalFileName=articleMap.get("originalFileName");
+					//temp폴더에 임시로 업로드된 파일 객체를 생성
+					File srcFile=new File(ART_IMAGE_REPO+"\\"+"temp\\"+imageFileName);
+					//글 번호로 폴더를 생성
+					File destDir=new File(ART_IMAGE_REPO+"\\"+articleNo);
+					destDir.mkdir();//폴더 만들기
+					//temp폴더의 파일을 글번호 이름으로 하는 폴더로 이동
+					FileUtils.moveFileToDirectory(srcFile, destDir, true);//파일 옮기기.
+					File oldFile=new File(ART_IMAGE_REPO+"\\"+articleNo+"\\"+originalFileName);
+					oldFile.delete();//oldFile지우기
+				}
+				pw=response.getWriter();
+				pw.print("<script>"+"alert('글을 수정했습니다.');"+"location.href='"+request.getContextPath()+"/board/viewArticle.do?articleNo=" + articleNo + "';"+"</script>");
+				return;
+			}else if(action.equals("/removeArticle.do")) {
+				int articleNo=Integer.parseInt(request.getParameter("articleNo"));
+				List<Integer> articleNoList=boardService.removeArticle(articleNo);//삭제할 글의 번호와 댓글들의 번호
+				for(int no: articleNoList ) {
+					File imgDir=new File(ART_IMAGE_REPO+"\\"+no);
+					if(imgDir.exists()) {
+						FileUtils.deleteDirectory(imgDir);
+					}
+				}
+				pw=response.getWriter();
+				pw.print("<script>"+"alert('글을 삭제했습니다.');"+"location.href='"+request.getContextPath()+"/board/listArticles.do';"+"</script>");
+				return;
+			}else if(action.equals("/replyForm.do")) {
+				int parentNo=Integer.parseInt(request.getParameter("parentNo"));
+				session=request.getSession();
+				session.setAttribute("parentNo", parentNo);
+				nextPage="/boardinfo/replyForm.jsp";
+			}else if(action.equals("/addReply.do")) {
+				session=request.getSession();
+				int parentNo=(Integer)session.getAttribute("parentNo");
+				session.removeAttribute("parentNo");
+				Map<String, String> articleMap=upload(request,response);
+				String title=articleMap.get("title");
+				String content=articleMap.get("content");
+				String imageFileName=articleMap.get("imageFileName");
+				articleVO.setParentNo(parentNo);
+				articleVO.setId("tnwls356");
+				articleVO.setTitle(title);
+				articleVO.setContent(content);
+				articleVO.setImageFileName(imageFileName);
+				int articleNo=boardService.addReply(articleVO);
+				if(imageFileName != null && imageFileName.length() != 0) {
+					File srcFile=new File(ART_IMAGE_REPO + "\\temp\\" + imageFileName);
+					File destDir=new File(ART_IMAGE_REPO + "\\" + articleNo);
+					destDir.mkdir();
+					FileUtils.moveFileToDirectory(srcFile, destDir, true);
+				}
+				pw=response.getWriter();
+				pw.print("<script>"+"alert('답글을 추가했습니다.');"+"location.href='"+request.getContextPath()+"/board/viewArticle.do?articleNo=" + articleNo + "';"+"</script>");
+				return;
 			}
 			RequestDispatcher dispatcher=request.getRequestDispatcher(nextPage);//바인딩
 			dispatcher.forward(request, response);//보여주기! //포워드
 		}catch(Exception e) {
-			System.out.println("요청 처리 중 에러"+ e.getMessage());
+			System.out.println("요청 처리 중 에러 : "+ e.getMessage());
 		}
 	}//doHandle메서드 종료
 	
-	//이미지 파일 업로드
+	//이미지 파일 업로드 + 새 글 관련 정보 저장
 	private Map<String, String> upload(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		Map<String, String> articleMap=new HashMap<String, String>();
 		String encoding="utf-8";//이미지파일 이름에 한글이 들어가면 깨져서 이렇게 해줘야함.

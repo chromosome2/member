@@ -130,6 +130,9 @@ public class BoardDAO {
 			String title=rs.getString("title");
 			String content=rs.getString("content");
 			String imageFileName=URLEncoder.encode(rs.getString("imageFileName"),"utf-8");//파일이름에 한글이나 특수문자가 있을경우에 인코딩해주겠다.
+			if(imageFileName.equals("null")) {
+				imageFileName=null;
+			}
 			String id=rs.getString("id");
 			Date writeDate=rs.getDate("writeDate");
 			//ArticleVO에 저장
@@ -147,6 +150,77 @@ public class BoardDAO {
 			System.out.println("글 상세 구현 중 에러 : "+e.getMessage());
 		}
 		return article;
+	}
+	
+	//글 수정하기
+	public void updateArticle(ArticleVO article) {
+		int articleNo=article.getArticleNo();
+		String title=article.getTitle();
+		String content=article.getContent();
+		String imageFileName=article.getImageFileName();
+		try {
+			conn=dataFactory.getConnection();
+			String query="update boardtbl set title=?, content=?";
+			if(imageFileName!=null && imageFileName.length() !=0) {
+				query+=", imageFileName=?";
+			}
+			query+=" where articleNo=?";
+			System.out.println(query);
+			pstmt=conn.prepareStatement(query);
+			pstmt.setString(1, title);
+			pstmt.setString(2, content);
+			if(imageFileName!=null && imageFileName.length() !=0) {
+				pstmt.setString(3, imageFileName);
+				pstmt.setInt(4, articleNo);
+			}else {
+				pstmt.setInt(3, articleNo);//물음표가 3번이 되는거임. image가 없으면!!
+			}
+			pstmt.executeUpdate();
+			pstmt.close();
+			conn.close();
+			
+		}catch(Exception e) {
+			System.out.println("DB 수정 중 에러");
+		}
+	}
+	
+	//삭제할 글 번호 목록
+	public List<Integer> selectRemoveArticles(int articleNo) {
+		List<Integer> articleNoList=new ArrayList<Integer>();
+		try {//DB연동할때는 try catch
+			conn=dataFactory.getConnection();
+			String query="SELECT articleNo FROM boardtbl START WITH articleNo=? CONNECT BY PRIOR articleNo=parentNo";//articleNo와 parentNo가 같은것을 쭉 계층형으로 가져옴,.
+			System.out.println(query);
+			pstmt=conn.prepareStatement(query);
+			pstmt.setInt(1, articleNo);
+			ResultSet rs=pstmt.executeQuery();//sql developer의 녹색 재생버튼
+			while(rs.next()) {
+				articleNo=rs.getInt("articleNo");
+				articleNoList.add(articleNo);
+			}
+			pstmt.close();
+			conn.close();
+		}catch (Exception e) {
+			System.out.println("글 번호 처리 중 에러");
+		}
+		return articleNoList;
+	}
+	
+	//글 삭제
+	public void deleteArticle(int articleNo) {
+		try {
+			conn=dataFactory.getConnection();
+			String query="DELETE FROM boardtbl where articleNo in (SELECT articleNo FROM boardtbl START WITH articleNo=?";//서브 쿼리 명령문 사용
+			query+=" CONNECT BY PRIOR articleNo=parentNo)";
+			System.out.println(query);
+			pstmt=conn.prepareStatement(query);
+			pstmt.setInt(1, articleNo);
+			pstmt.executeUpdate();
+			pstmt.close();
+			conn.close();
+		}catch (Exception e) {
+			System.out.println("글 삭제 처리 중 에러");
+		}
 	}
 	
 }

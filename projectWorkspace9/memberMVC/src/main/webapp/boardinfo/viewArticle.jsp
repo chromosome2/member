@@ -1,5 +1,5 @@
-<%@ page language="java" contentType="text/html; charset=EUC-KR"
-    pageEncoding="EUC-KR"%>
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <c:set var="contextPath" value="${pageContext.request.contextPath }"/>
@@ -9,11 +9,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="EUC-KR">
-<title>±Û »ó¼¼ º¸±â</title>
+<meta charset="UTF-8">
+<title>ê¸€ ìƒì„¸ ë³´ê¸°</title>
+<style type="text/css">
+	#tr_button_modify {
+		display: none;
+	}
+</style>
 <script src="http://code.jquery.com/jquery-latest.min.js"></script>
 <script type="text/javascript">
-	function readImage(input){
+	function readImage(input){//ë‹¤ìš´ë¡œë“œí•œ ì´ë¯¸ì§€ ë³´ê¸°
 		if(input.files && input.files[0]){
 			let reader=new FileReader();
 			reader.onload=function(event){
@@ -22,54 +27,100 @@
 			reader.readAsDataURL(input.files[0]);
 		}
 	}
-	function toList(obj){
+	function toList(obj){//ê¸€ëª©ë¡ìœ¼ë¡œ ëŒì•„ê°€ê¸°
 		obj.action="${contextPath}/board/listArticles.do";
 		obj.submit();
+	}
+	function fn_enable(obj){//ë¹„í™œì„±í™” í’€ê¸° í•¨ìˆ˜
+		document.getElementById("id_title").disabled=false;
+		document.getElementById("id_content").disabled=false;
+		let imgName=document.getElementById("id_imageFileName");
+		if(imgName != null){
+			imgName.disabled=false;
+		}
+		document.getElementById("tr_button_modify").style.display="block";
+		document.getElementById("tr_button").style.display="none";
+	}
+	function fn_modify_article(obj){//ì»¨íŠ¸ë¡¤ëŸ¬ë¡œ í˜¸ì¶œí•˜ëŠ” í•¨ìˆ˜
+		obj.action="${contextPath}/board/modArticle.do";
+		obj.submit();
+	}
+	function fn_remove_article(url, articleNo) {
+		let form=document.createElement("form");//formíƒœê·¸ë¥¼ ë§Œë“¤ì–´ì„œ formì´ë¼ëŠ” ë³€ìˆ˜ì— ë„£ìŒ
+		form.setAttribute("method","post");//ì†ì„±ì„¸íŒ… ==> <form method="post">
+		form.setAttribute("action",url);
+		let articleNoInput=document.createElement("input");
+		articleNoInput.setAttribute("type","hidden");
+		articleNoInput.setAttribute("name","articleNo");
+		articleNoInput.setAttribute("value",articleNo);//ë§¤ê°œë³€ìˆ˜ ê°’ ë°›ê¸°
+		form.appendChild(articleNoInput);
+		document.body.appendChild(form);
+		form.submit();
+	}
+	function fn_reply_form(url, parentNo){
+		let form=document.createElement("form");
+		form.setAttribute("method","post");
+		form.setAttribute("action",url);
+		let parentNoInput=document.createElement("input");
+		parentNoInput.setAttribute("type","hidden");
+		parentNoInput.setAttribute("name","parentNo");
+		parentNoInput.setAttribute("value",parentNo);
+		form.appendChild(parentNoInput);
+		document.body.appendChild(form);
+		form.submit();
 	}
 </script>
 </head>
 <body>
-	<form name="frmArticle" action="${contextPath }" method="post" enctype="multipart/form-data"><%--ÇÏ³ªÀÇ ¹®¼­¾È¿¡ ÆûÀÌ ¿©·¯°³¸é nameÀ» ²À Áà¼­ ±¸ºĞÇØ¾ßÇÔ. --%>
+	<form name="frmArticle" action="${contextPath }" method="post" enctype="multipart/form-data"><%--í•˜ë‚˜ì˜ ë¬¸ì„œì•ˆì— í¼ì´ ì—¬ëŸ¬ê°œë©´ nameì„ ê¼­ ì¤˜ì„œ êµ¬ë¶„í•´ì•¼í•¨. --%>
 		<table align="center">
 			<tr>
-				<td width="150" align="center" bgcolor="#ff9933">±Û¹øÈ£</td>
-				<td><input type="text" value="${article.articleNo }" name="articleNo" disabled></td><%--Æ÷¿öµùÇÑ°Ô ³Ñ¾î¿À´Â°ÅÀÓ. nameÀÌ ÀÖ¾î¾ß ¼öÁ¤ÇÒ¶§ °®°í°¥¼öÀÖÀ½.--%>
+				<td width="150" align="center" bgcolor="#ff9933">ê¸€ë²ˆí˜¸</td>
+				<td><input type="text" value="${article.articleNo }" disabled></td><%--í¬ì›Œë”©í•œê²Œ ë„˜ì–´ì˜¤ëŠ”ê±°ì„. nameì´ ìˆì–´ì•¼ ìˆ˜ì •í• ë•Œ ê°–ê³ ê°ˆìˆ˜ìˆìŒ.--%>
+				<input type="hidden" name="articleNo" value="${article.articleNo }"><%-- boardControllerì— hiddenìœ¼ë¡œ ë„˜ê²¨ì£¼ê¸°. --%>
 			</tr>
 			<tr>
-				<td width="150" align="center" bgcolor="#ff9933">ÀÛ¼ºÀÚ¾ÆÀÌµğ</td>
-				<td><input type="text" value="${article.id}" disabled name="writer"></td>
+				<td width="150" align="center" bgcolor="#ff9933">ì‘ì„±ìì•„ì´ë””</td>
+				<td><input type="text" value="${article.id}" disabled name="writer" disabled></td>
 			</tr>
 			<tr>
-				<td width="150" align="center" bgcolor="#ff9933">Á¦¸ñ</td>
-				<td><input type="text" value="${article.title}" disabled name="title"></td>
+				<td width="150" align="center" bgcolor="#ff9933">ì œëª©</td>
+				<td><input type="text" value="${article.title}" disabled name="title" id="id_title" disabled></td>
 			</tr>
 			<tr>
-				<td width="150" align="center" bgcolor="#ff9933">³»¿ë</td>
+				<td width="150" align="center" bgcolor="#ff9933">ë‚´ìš©</td>
 				<td>
-					<textarea rows="20" cols="60" name="content" disabled>${article.content }</textarea>
+					<textarea rows="20" cols="60" name="content" id="id_content" disabled>${article.content }</textarea>
 				</td>
 			</tr>
-			<c:if test="${not empty article.imageFileName && article.imageFileName != 'null'}"><%--imageFileNameÀÌ ºñ¾îÀÖÁö ¾Ê´Ù¸é --%>
+			<c:if test="${not empty article.imageFileName && article.imageFileName != 'null'}"><%--imageFileNameì´ ë¹„ì–´ìˆì§€ ì•Šë‹¤ë©´ --%>
 				<tr>
-					<td width="150" rowspan="2" align="center" bgcolor="#ff9933">ÀÌ¹ÌÁö</td>
+					<td width="150" rowspan="2" align="center" bgcolor="#ff9933">ì´ë¯¸ì§€</td>
+					<input type="hidden" name="originalFileName" value="${article.imageFileName }">
 					<td>
 						<img src="${contextPath }/download.do?articleNo=${article.articleNo}&imageFileName=${article.imageFileName}" id="preview" width="300"><br> 
 					</td>
 				</tr>
 				<tr>
-					<td><input type="file" name="imageFileName" onchange="readImage(this)" disabled></td>
+					<td><input type="file" name="imageFileName" id="id_imageFileName" onchange="readImage(this)" disabled></td>
 				</tr>
 			</c:if>
 			<tr>
-				<td width="150" align="center" bgcolor="#ff9933">µî·ÏÀÏÀÚ</td>
+				<td width="150" align="center" bgcolor="#ff9933">ë“±ë¡ì¼ì</td>
 				<td><input type="text" value="<fmt:formatDate value="${article.writeDate}"/>" disabled></td>
 			</tr>
-			<tr>
+			<tr id="tr_button_modify">
 				<td colspan="2" align="center">
-					<input type="button" value="¼öÁ¤ÇÏ±â" onclick="">
-					<input type="button" value="»èÁ¦ÇÏ±â" onclick="">
-					<input type="button" value="¸®½ºÆ®·Î µ¹¾Æ°¡±â" onclick="toList(this.form)">
-					<input type="button" value="´ä±Û¾²±â" onclick="">
+					<input type="button" value="ìˆ˜ì •ë°˜ì˜í•˜ê¸°" onclick="fn_modify_article(frmArticle)">
+					<input type="button" value="ì·¨ì†Œ" onclick="toList(this.form)">
+				</td>
+			</tr>
+			<tr id="tr_button">
+				<td colspan="2" align="center">
+					<input type="button" value="ìˆ˜ì •í•˜ê¸°" onclick="fn_enable(this.form)">
+					<input type="button" value="ì‚­ì œí•˜ê¸°" onclick="fn_remove_article('${contextPath}/board/removeArticle.do', ${article.articleNo })">
+					<input type="button" value="ë¦¬ìŠ¤íŠ¸ë¡œ ëŒì•„ê°€ê¸°" onclick="toList(this.form)">
+					<input type="button" value="ë‹µê¸€ì“°ê¸°" onclick="fn_reply_form('${contextPath}/board/replyForm.do',${article.articleNo })">
 				</td>
 			</tr>
 		</table>
